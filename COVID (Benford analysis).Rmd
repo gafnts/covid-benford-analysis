@@ -1,9 +1,27 @@
 ```{r}
-pacman::p_load(tidyverse, here, rvest)
+pacman::p_load(tidyverse, here, htmltab, janitor)
 ```
 
 # COVID data integrity
 
-```{r}
+## The Economist Intelligence Unit: Democracy Index
 
+```{r}
+democracy <- 
+  htmltab("https://en.wikipedia.org/wiki/Democracy_Index", 6) %>% 
+  as_tibble() %>% 
+  clean_names() %>% 
+  # rename_with(~str_remove(., "x")) %>% 
+  select(country, region, "regime" = regime_type, 
+         everything(), -c(x2020_rank))
+```
+
+## Our World in Data: COVID time series
+
+```{r}
+covid <- 
+  read_csv("https://github.com/owid/covid-19-data/blob/master/public/data/owid-covid-data.csv?raw=true") %>% 
+  select(iso_code, continent, location, date, 
+         new_cases, new_deaths, new_tests, new_vaccinations,
+         population, extreme_poverty, human_development_index)
 ```
