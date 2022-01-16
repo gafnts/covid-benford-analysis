@@ -62,19 +62,40 @@ madiff <-
     mean <- 
       suspectsTable(filtered) %>% 
       select("absolute.diff") %>% 
-      summarise(mean = (mean(absolute.diff)))
+      summarise(mean = (mean(absolute.diff))) %>% 
+      pull(mean)
   }
 ```
 
 ```{r}
 countries <- c("GTM", "USA", "CHN")
+```
 
-for (country in countries) {
-  filtered <- filter_data(covid, iso_code, my_list = country)
+```{r}
+vectorize <- function(countries) {
+  binded <- data.frame()
+  for (country in countries) {
+    filtered <- filter_data(covid, iso_code, my_list = country)
+    benford <- benford(filtered, 1, sign = "both")
+    value <- madiff(benford)
+    print(value)
+  }
+  binded %>% as_tibble()
+}
+```
+
+```{r}
+lista <- list()
+for (i in countries) {
+  filtered <- filter_data(covid, iso_code, my_list = i)
   benford <- benford(filtered, 1, sign = "both")
   value <- madiff(benford)
-  print(value)
+  lista[[i]] <- value
 }
+```
+
+```{r}
+as_tibble(lista)
 ```
 
 ## Democracy Index: The Economist Intelligence Unit
