@@ -1,8 +1,8 @@
 ```{r}
-pacman::p_load(tidyverse, here, benford.analysis, htmltab)
+pacman::p_load(tidyverse, here, benford.analysis, htmltab, stringi)
 ```
 
-# Analyzing COVID data integrity
+# Analyzing the integrity of COVID data by country
 
 ### COVID: Our World in Data
 
@@ -17,7 +17,15 @@ covid <-
 ### ISO codes
 
 ```{r}
-countries <- c("GTM", "USA", "CHN")
+codes <-
+  read_csv("https://git.io/v564u") %>%
+  select(iso_code = `alpha-3`, name)
+
+countries <- 
+  covid %>% 
+  distinct(iso_code) %>% 
+  inner_join(codes, by = "iso_code") %>% 
+  pull(iso_code)
 ```
 
 ## Benford analysis
@@ -29,8 +37,7 @@ filter_data <-
     filtered <- 
       data %>% 
       filter(UQ(iso_code) %in% my_list) %>% 
-      pull(new_cases) %>% 
-      na.omit()
+      pull(new_cases)
 }
 
 madiff <- 
@@ -58,9 +65,9 @@ benford_rank <-
   mutate(col = 1) %>% 
   pivot_longer(-col, names_to = "iso_code", values_to = "benford") %>% 
   select(-col) %>% 
-  arrange(value)
+  arrange(iso_code)
 
-benford_rank
+benford_rank %>% print(n = Inf)
 ```
 
 ## Democracy Index: The Economist Intelligence Unit
@@ -68,13 +75,41 @@ benford_rank
 ```{r}
 democracy <- 
   htmltab("https://en.wikipedia.org/wiki/Democracy_Index", 6) %>% 
-  as_tibble() %>% 
   janitor::clean_names() %>% 
   # rename_with(~str_remove(., "x")) %>% 
-  select(country, region, "regime" = regime_type, 
-         everything(), -c(x2020_rank))
+  select("name" = country, region, "regime" = regime_type, "democracy" = x2020) %>% 
+  as_tibble()
+```
+
+## Analysis
+
+```{r}
+demo <- 
+  democracy %>% 
+  select(name, regime, democracy) %>% 
+  mutate(name = stri_trim_left(name))
+```
+
+```{r}
+data <- 
+  benford_rank %>% 
+  inner_join(codes, by = "iso_code") %>% 
+  inner_join(demo, by = "name") %>% 
+  mutate(democracy = as.numeric(democracy)) %>% 
+  select(iso_code, name, benford, democracy, regime)
+```
+
+```{r}
+data %>% 
+  ggplot(aes(x = democracy, y = benford, label = iso_code)) +
+  geom_point() +
+  geom_text(hjust = 0, vjust = 0)
+```
+
+```{r}
+summary(lm(benford ~ democracy, data))
 ```
 
 ## References
 
-[<https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf>](https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf){.uri}
+[\<https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf>](https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf){.uri}
