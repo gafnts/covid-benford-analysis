@@ -2,21 +2,9 @@
 pacman::p_load(tidyverse, here, htmltab, janitor, benford.analysis)
 ```
 
-# COVID data integrity
+# COVID data integrity by country
 
-## The Economist Intelligence Unit: Democracy Index
-
-```{r}
-democracy <- 
-  htmltab("https://en.wikipedia.org/wiki/Democracy_Index", 6) %>% 
-  as_tibble() %>% 
-  clean_names() %>% 
-  # rename_with(~str_remove(., "x")) %>% 
-  select(country, region, "regime" = regime_type, 
-         everything(), -c(x2020_rank))
-```
-
-## Our World in Data: COVID time series
+## COVID: Our World in Data 
 
 ```{r}
 covid <- 
@@ -28,21 +16,21 @@ covid <-
 
 ## Benford analysis
 
+Reference: <https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf>
+
 ```{r}
 covid %>% filter(new_cases < 0) %>% count()
 ```
 
-Do I need to remove NA's from the vector?
-
 ```{r}
-benford <- benford(covid %>% pull(new_cases))
+benford <- benford(covid %>% pull(new_cases) %>% na.omit(), 1, "both")
 plot(benford)
 ```
 
 ```{r}
 benford <- benford(covid %>% 
-                     filter(iso_code == "CHE") %>%
-                     pull(new_cases), 1, sign = "positive")
+                     filter(iso_code == "USA") %>%
+                     pull(new_cases) %>% na.omit(), 1, sign = "both")
 
 madiff <- 
   suspectsTable(benford) %>% 
@@ -52,27 +40,16 @@ madiff <-
   pull()
 
 madiff
-MAD(benford)
 ```
 
+## Democracy Index: The Economist Intelligence Unit
+
 ```{r}
-# GTM
-13.72744
-0.02076768
-
-# USA
-12.95244
-0.01860983
-
-# CHN
-15.90707
-0.02240432
-
-# SWE
-12.92031
-0.02827202
-
-# CHE
-8.820274
-0.01639456
+democracy <- 
+  htmltab("https://en.wikipedia.org/wiki/Democracy_Index", 6) %>% 
+  as_tibble() %>% 
+  clean_names() %>% 
+  # rename_with(~str_remove(., "x")) %>% 
+  select(country, region, "regime" = regime_type, 
+         everything(), -c(x2020_rank))
 ```
