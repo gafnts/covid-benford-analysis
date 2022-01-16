@@ -1,5 +1,5 @@
 ```{r}
-pacman::p_load(tidyverse, here, htmltab, janitor)
+pacman::p_load(tidyverse, here, htmltab, janitor, benford.analysis)
 ```
 
 # COVID data integrity
@@ -24,4 +24,29 @@ covid <-
   select(iso_code, continent, location, date, 
          new_cases, new_deaths, new_tests, new_vaccinations,
          population, extreme_poverty, human_development_index)
+```
+
+## Benford analysis
+
+```{r}
+covid %>% filter(new_cases < 0) %>% count()
+```
+
+Do I need to remove NA's from the vector?
+
+```{r}
+benford <- benford(covid %>% pull(new_cases))
+plot(benford)
+```
+
+```{r}
+benford <- benford(covid %>% filter(iso_code == "GTM") %>% pull(new_cases),
+                   2, sign="both")
+plot(benford)
+```
+
+The measure you've been searching for is the mean absolute difference:
+
+```{r}
+head(suspectsTable(benford),10)
 ```
