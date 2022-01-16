@@ -1,5 +1,5 @@
 ```{r}
-pacman::p_load(tidyverse, here, htmltab, janitor, benford.analysis)
+pacman::p_load(tidyverse, here, benford.analysis, htmltab)
 ```
 
 # COVID data integrity by country
@@ -58,37 +58,23 @@ filter_data <-
 }
 
 madiff <- 
-  function(vector) {
-    madiff <- 
-      suspectsTable(vector) %>% 
-      as_tibble() %>% 
+  function(filtered) {
+    mean <- 
+      suspectsTable(filtered) %>% 
       select("absolute.diff") %>% 
-      summarise(mean = mean(absolute.diff)) %>% 
-      pull()
-}
-
-vectorize <-
-  function(data, countries) {
-    binded <- data.frame()
-    for (country in countries) {
-      filtered <- filter_data(data, iso_code = iso_code, my_list = countries)
-      benford <- benford(filtered, 1, sign = "both")
-      madiff <- madiff(benford)
-      binded <- rbind(binded, madiff)
-    }
-    binded %>%
-      as_tibble()
+      summarise(mean = (mean(absolute.diff)))
   }
-
-vectorize(covid, countries = c("GTM", "USA"))
 ```
 
 ```{r}
-test <- filter_data(covid, iso_code, my_list = c("GTM"))
-benford <- benford(test, 1, sign = "both")
-madiff <- madiff(benford)
+countries <- c("GTM", "USA", "CHN")
 
-madiff
+for (country in countries) {
+  filtered <- filter_data(covid, iso_code, my_list = country)
+  benford <- benford(filtered, 1, sign = "both")
+  value <- madiff(benford)
+  print(value)
+}
 ```
 
 ## Democracy Index: The Economist Intelligence Unit
@@ -97,7 +83,7 @@ madiff
 democracy <- 
   htmltab("https://en.wikipedia.org/wiki/Democracy_Index", 6) %>% 
   as_tibble() %>% 
-  clean_names() %>% 
+  janitor::clean_names() %>% 
   # rename_with(~str_remove(., "x")) %>% 
   select(country, region, "regime" = regime_type, 
          everything(), -c(x2020_rank))
