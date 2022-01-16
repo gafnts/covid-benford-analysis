@@ -4,7 +4,7 @@ pacman::p_load(tidyverse, here, htmltab, janitor, benford.analysis)
 
 # COVID data integrity by country
 
-## COVID: Our World in Data 
+## COVID: Our World in Data
 
 ```{r}
 covid <- 
@@ -17,6 +17,8 @@ covid <-
 ## Benford analysis
 
 Reference: <https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf>
+
+### Benford: Example
 
 ```{r}
 covid %>% filter(new_cases < 0) %>% count()
@@ -38,6 +40,53 @@ madiff <-
   select("absolute.diff") %>% 
   summarise(mean = mean(absolute.diff)) %>% 
   pull()
+
+madiff
+```
+
+### Vectorized Benford analysis
+
+```{r}
+filter_data <- 
+  function(data, iso_code, my_list){
+    iso_code <- enquo(iso_code)
+    filtered <- 
+      data %>% 
+      filter(UQ(iso_code) %in% my_list) %>% 
+      pull(new_cases) %>% 
+      na.omit()
+}
+
+madiff <- 
+  function(vector) {
+    madiff <- 
+      suspectsTable(vector) %>% 
+      as_tibble() %>% 
+      select("absolute.diff") %>% 
+      summarise(mean = mean(absolute.diff)) %>% 
+      pull()
+}
+
+vectorize <-
+  function(data, countries) {
+    binded <- data.frame()
+    for (country in countries) {
+      filtered <- filter_data(data, iso_code = iso_code, my_list = countries)
+      benford <- benford(filtered, 1, sign = "both")
+      madiff <- madiff(benford)
+      binded <- rbind(binded, madiff)
+    }
+    binded %>%
+      as_tibble()
+  }
+
+vectorize(covid, countries = c("GTM", "USA"))
+```
+
+```{r}
+test <- filter_data(covid, iso_code, my_list = c("GTM"))
+benford <- benford(test, 1, sign = "both")
+madiff <- madiff(benford)
 
 madiff
 ```
