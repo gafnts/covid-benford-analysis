@@ -2,9 +2,9 @@
 pacman::p_load(tidyverse, here, benford.analysis, htmltab)
 ```
 
-# COVID data integrity by country
+# Analyzing COVID data integrity
 
-## COVID: Our World in Data
+### COVID: Our World in Data
 
 ```{r}
 covid <- 
@@ -14,37 +14,13 @@ covid <-
          population, extreme_poverty, human_development_index)
 ```
 
+### ISO codes
+
+```{r}
+countries <- c("GTM", "USA", "CHN")
+```
+
 ## Benford analysis
-
-Reference: <https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf>
-
-### Benford: Example
-
-```{r}
-covid %>% filter(new_cases < 0) %>% count()
-```
-
-```{r}
-benford <- benford(covid %>% pull(new_cases) %>% na.omit(), 1, "both")
-plot(benford)
-```
-
-```{r}
-benford <- benford(covid %>% 
-                     filter(iso_code == "USA") %>%
-                     pull(new_cases) %>% na.omit(), 1, sign = "both")
-
-madiff <- 
-  suspectsTable(benford) %>% 
-  as_tibble() %>% 
-  select("absolute.diff") %>% 
-  summarise(mean = mean(absolute.diff)) %>% 
-  pull()
-
-madiff
-```
-
-### Vectorized Benford analysis
 
 ```{r}
 filter_data <- 
@@ -68,34 +44,23 @@ madiff <-
 ```
 
 ```{r}
-countries <- c("GTM", "USA", "CHN")
-```
+list <- list()
 
-```{r}
-vectorize <- function(countries) {
-  binded <- data.frame()
-  for (country in countries) {
-    filtered <- filter_data(covid, iso_code, my_list = country)
-    benford <- benford(filtered, 1, sign = "both")
-    value <- madiff(benford)
-    print(value)
-  }
-  binded %>% as_tibble()
-}
-```
-
-```{r}
-lista <- list()
 for (i in countries) {
   filtered <- filter_data(covid, iso_code, my_list = i)
   benford <- benford(filtered, 1, sign = "both")
   value <- madiff(benford)
-  lista[[i]] <- value
+  list[[i]] <- value
 }
-```
 
-```{r}
-as_tibble(lista)
+benford_rank <- 
+  as_tibble(list) %>% 
+  mutate(col = 1) %>% 
+  pivot_longer(-col, names_to = "iso_code", values_to = "benford") %>% 
+  select(-col) %>% 
+  arrange(value)
+
+benford_rank
 ```
 
 ## Democracy Index: The Economist Intelligence Unit
@@ -109,3 +74,7 @@ democracy <-
   select(country, region, "regime" = regime_type, 
          everything(), -c(x2020_rank))
 ```
+
+## References
+
+[<https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf>](https://hill.math.gatech.edu/publications/PAPER%20PDFS/TheFirstDigitPhenomenonAmericanScientist1996.pdf){.uri}
