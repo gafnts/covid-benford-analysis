@@ -40,13 +40,39 @@ plot(benford)
 ```
 
 ```{r}
-benford <- benford(covid %>% filter(iso_code == "GTM") %>% pull(new_cases),
-                   2, sign="both")
-plot(benford)
+benford <- benford(covid %>% 
+                     filter(iso_code == "CHE") %>%
+                     pull(new_cases), 1, sign = "positive")
+
+madiff <- 
+  suspectsTable(benford) %>% 
+  as_tibble() %>% 
+  select("absolute.diff") %>% 
+  summarise(mean = mean(absolute.diff)) %>% 
+  pull()
+
+madiff
+MAD(benford)
 ```
 
-The measure you've been searching for is the mean absolute difference:
-
 ```{r}
-head(suspectsTable(benford),10)
+# GTM
+13.72744
+0.02076768
+
+# USA
+12.95244
+0.01860983
+
+# CHN
+15.90707
+0.02240432
+
+# SWE
+12.92031
+0.02827202
+
+# CHE
+8.820274
+0.01639456
 ```
