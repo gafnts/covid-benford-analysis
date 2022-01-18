@@ -1,5 +1,5 @@
 ```{r}
-pacman::p_load(tidyverse, here, benford.analysis, htmltab, stringi)
+pacman::p_load(tidyverse, magrittr, here, benford.analysis, htmltab, stringi)
 ```
 
 # Analyzing the integrity of COVID data by country
@@ -11,7 +11,9 @@ covid <-
   read_csv("https://github.com/owid/covid-19-data/blob/master/public/data/owid-covid-data.csv?raw=true") %>% 
   select(iso_code, continent, location, date, 
          new_cases, new_deaths, new_tests, new_vaccinations,
-         population, extreme_poverty, human_development_index)
+         population, extreme_poverty, human_development_index) %>% 
+  drop_na(new_cases, new_deaths, new_tests) %>% 
+  filter(iso_code != "GGY")
 ```
 
 ### ISO codes
@@ -23,7 +25,7 @@ codes <-
 
 countries <- 
   covid %>% 
-  distinct(iso_code) %>% 
+  distinct(iso_code) %>%
   inner_join(codes, by = "iso_code") %>% 
   pull(iso_code)
 ```
@@ -32,11 +34,11 @@ countries <-
 
 ```{r}
 filter_data <- 
-  function(data, iso_code, my_list){
-    iso_code <- enquo(iso_code)
-    filtered <- 
-      data %>% 
-      filter(UQ(iso_code) %in% my_list) %>% 
+  function(data, var, my_list){
+    var <- enquo(var)
+    data %>% 
+      filter(UQ(var) %in% my_list) %>% 
+      mutate(new_cases = abs(new_cases)) %>% 
       pull(new_cases)
 }
 
@@ -55,7 +57,7 @@ list <- list()
 
 for (i in countries) {
   filtered <- filter_data(covid, iso_code, my_list = i)
-  benford <- benford(filtered, 1, sign = "both")
+  benford <- benford(filtered, 1, sign = "positive")
   value <- madiff(benford)
   list[[i]] <- value
 }
@@ -68,6 +70,10 @@ benford_rank <-
   arrange(iso_code)
 
 benford_rank %>% print(n = Inf)
+```
+
+```{r}
+benford_rank %>% anti_join()
 ```
 
 ## Democracy Index: The Economist Intelligence Unit
